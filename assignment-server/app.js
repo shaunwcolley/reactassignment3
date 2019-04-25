@@ -8,7 +8,7 @@ app.use(cors())
 app.use(bodyParser.json())
 models = require('./models')
 
-let books = [
+let hardCodeBooks = [
   {
     title: "Harry Potter",
     genre: "Fantasy",
@@ -32,14 +32,6 @@ app.post('/api/books', (req,res) => {
     year: year,
     imageURL: imageURL
   })
-  let newBook = {
-    title: title,
-    genre: genre,
-    publisher: publisher,
-    year: year,
-    imageURL: imageURL
-  }
-  books.push(newBook)
   book.save().then((savedBook) => {
     res.json({success: true, message: 'Book was added!'})
   })
@@ -63,6 +55,27 @@ app.get('/api/books', (req,res) => {
   })
 })
 
+app.get('/api/update/book-id/:id', (req,res) => {
+  let id = parseInt(req.params.id)
+  models.Book.findByPk(id).then((book) => {
+    res.json(books)
+  })
+})
+
+app.post('/api/update/book-id/:id', (req,res) => {
+  let title = req.body.title
+  let genre = req.body.genre
+  let publisher = req.body.publisher
+  let year = req.body.year
+  let imageURL = req.body.imageURL
+  let book = models.Book.build({
+    title: title,
+    genre: genre,
+    publisher: publisher,
+    year: year,
+    imageURL: imageURL
+  })
+})
 
 app.listen(PORT,function(){
   console.log("Books getting served..")
