@@ -58,22 +58,30 @@ app.get('/api/books', (req,res) => {
 app.get('/api/update/book-id/:id', (req,res) => {
   let id = parseInt(req.params.id)
   models.Book.findByPk(id).then((book) => {
-    res.json(books)
+    res.json(book)
   })
 })
 
 app.post('/api/update/book-id/:id', (req,res) => {
+  let id = req.params.id
   let title = req.body.title
   let genre = req.body.genre
   let publisher = req.body.publisher
   let year = req.body.year
   let imageURL = req.body.imageURL
-  let book = models.Book.build({
+  models.Book.update({
     title: title,
     genre: genre,
     publisher: publisher,
     year: year,
     imageURL: imageURL
+  }, {
+    where: {
+      id:id
+    }
+  }).then((bookID) => {
+    console.log(`Book with id ${bookID} was updated.`)
+    res.json({success: true, message: 'Book was updated!'})
   })
 })
 
