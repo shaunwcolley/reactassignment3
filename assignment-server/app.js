@@ -85,6 +85,39 @@ app.post('/api/update/book-id/:id', (req,res) => {
   })
 })
 
+app.post('/login', (req,res) => {
+  let userName = req.body.userName
+  let pass = req.body.pass
+  models.User.findAll({
+    where: {
+      userName: userName
+    }
+  }).then((user) => {
+    if(user.length == 0){
+      res.json({success:false, message: 'User does not exist.'})
+    }
+    else if(user[0].pass === pass){
+      res.json({success:true, message: 'User Logged In.'})
+    }
+    else {
+      res.json({sucess:false, message: 'Invalid Password.'})
+    }
+  })
+
+})
+app.post('/register', (req,res) => {
+  let userName = req.body.userName
+  let pass = req.body.pass
+  //NEVER store passwords as string! Only doing this for testing purposes until I set up Bcrypt.
+  let user = models.User.build({
+    userName: userName,
+    pass: pass
+  })
+  user.save().then((savedUser) => {
+    res.json({success: true, message: 'User was register!'})
+  })
+})
+
 app.listen(PORT,function(){
   console.log("Books getting served..")
 })
