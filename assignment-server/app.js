@@ -1,6 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const bcrypt = require('bcrypt')
+const saltRounds = 10
 const app = express()
 const PORT = process.env.PORT || 8080
 
@@ -96,26 +98,41 @@ app.post('/login', (req,res) => {
     if(user.length == 0){
       res.json({success:false, message: 'User does not exist.'})
     }
-    else if(user[0].pass === pass){
-      res.json({success:true, message: 'User Logged In.'})
-    }
     else {
-      res.json({sucess:false, message: 'Invalid Password.'})
+      bcrypt.compare(req.body.pass, user[0].pass, function(err, response) {
+        if(response){
+          res.json({success:true, message: 'User Logged In.'})
+        }
+        else {
+          res.json({sucess:false, message: 'Invalid Password.'})
+        }
+      })
+
     }
   })
 
 })
 app.post('/register', (req,res) => {
   let userName = req.body.userName
-  let pass = req.body.pass
-  //NEVER store passwords as string! Only doing this for testing purposes until I set up Bcrypt.
-  let user = models.User.build({
-    userName: userName,
-    pass: pass
+  let pass = bcrypt.hashSync(req.body.pass, saltRounds)
+  models.User.findAll({
+    where: {
+      userName: userName
+    }
+  }).then((userOld) => {
+    if(userOld.length == 0){
+      let user = models.User.build({
+        userName: userName,
+        pass: pass
+      })
+      user.save().then((savedUser) => {
+        res.json({success: true, message: 'User was register!'})
+      })
+    } else {
+      res.json({success:false, message: 'Username already exists.'})
+    }
   })
-  user.save().then((savedUser) => {
-    res.json({success: true, message: 'User was register!'})
-  })
+
 })
 
 app.listen(PORT,function(){
