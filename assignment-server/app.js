@@ -4,11 +4,33 @@ const cors = require('cors')
 const bcrypt = require('bcrypt')
 const saltRounds = 10
 const app = express()
+const jwt = require('jsonwebtoken')
 const PORT = process.env.PORT || 8080
 
 app.use(cors())
 app.use(bodyParser.json())
 models = require('./models')
+
+let userId = ''
+
+function authenticate(req, res, next) {
+  let headers = req.headers["authorization"]
+
+  let token = headers.split(' ')[1]
+  jwt.verify(token, 'twasbrillig', (err, decoded) => {
+    if(decoded) {
+      if(decoded.userId) {
+        userId = decoded.userId
+        console.log('decoded')
+        next()
+      } else {
+        res.status(401).json({message: 'Invalid Token'})
+      }
+    } else {
+      res.status(401).json({message: 'Invalid Token', err: err})
+    }
+  })
+}
 
 let hardCodeBooks = [
   {
@@ -20,7 +42,7 @@ let hardCodeBooks = [
   }
 ]
 
-app.post('/api/books', (req,res) => {
+app.post('/api/books', authenticate, (req,res) => {
   let title = req.body.title
   let genre = req.body.genre
   let publisher = req.body.publisher
@@ -39,7 +61,7 @@ app.post('/api/books', (req,res) => {
   })
 })
 
-app.post('/api/delete-book', (req,res) => {
+app.post('/api/delete-book', authenticate, (req,res) => {
   let deleteID = req.body.deleteID
   models.Book.destroy({
     where: {
@@ -64,7 +86,7 @@ app.get('/api/update/book-id/:id', (req,res) => {
   })
 })
 
-app.post('/api/update/book-id/:id', (req,res) => {
+app.post('/api/update/book-id/:id', authenticate, (req,res) => {
   let id = req.params.id
   let title = req.body.title
   let genre = req.body.genre
@@ -101,19 +123,25 @@ app.post('/login', (req,res) => {
     else {
       bcrypt.compare(req.body.pass, user[0].pass, function(err, response) {
         if(response){
-          res.json({success:true, message: 'User Logged In.'})
+          jwt.sign({userId: user[0].id}, 'twasbrillig', function(error, token) {
+            if(token) {
+              res.json({success:true, message: 'User Logged In.', token: token, userId: user[0].id})
+            } else {
+              res.status(500).json({message: 'Unable to generate token', error: error})
+            }
+          })
         }
         else {
-          res.json({sucess:false, message: 'Invalid Password.'})
+          res.json({sucess:false, message: 'Invalid Password.', err: err})
         }
       })
-
     }
   })
-
 })
+
 app.post('/register', (req,res) => {
   let userName = req.body.userName
+  let email = req.body.email
   let pass = bcrypt.hashSync(req.body.pass, saltRounds)
   models.User.findAll({
     where: {
@@ -123,7 +151,8 @@ app.post('/register', (req,res) => {
     if(userOld.length == 0){
       let user = models.User.build({
         userName: userName,
-        pass: pass
+        pass: pass,
+        email: email
       })
       user.save().then((savedUser) => {
         res.json({success: true, message: 'User was register!'})
