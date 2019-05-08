@@ -161,7 +161,35 @@ app.post('/register', (req,res) => {
       res.json({success:false, message: 'Username already exists.'})
     }
   })
+})
 
+app.get('/profile/user-id/:id', (req,res) => {
+  let id = req.params.id
+  models.User.findAll({
+    where: {
+      id: id
+    }
+  }).then(userData => {
+    let user = {
+      userName: userData[0].userName,
+      email: userData[0].email
+    }
+    res.json(user)
+  })
+})
+
+app.post('/profile/user-id/:id', authenticate, (req,res) => {
+  let id = req.params.id
+  let email = req.body.email
+  models.User.update({
+    email: email
+  }, {
+    where: {
+      id:id
+    }
+  }).then(user => {
+    res.json({success:true, message: `User email with id ${user} was updated.` })
+  })
 })
 
 app.listen(PORT,function(){
